@@ -33,7 +33,8 @@ module PFAgent
                     res = popfirst!(agents[i])
                     r = res[:r]
                     t = res[:t]
-                    push!(r_history, (e,i,t,r))
+                    st = res[:s]
+                    push!(r_history, (e,i,t,st,r))
                     # println("before: i:$i, s:$(res[:s]), a:$(rev_action_map[res[:a]]), N:$(N_tables[i][res[:s],rev_action_map[res[:a]]])")
                     N_tables[i][res[:s],rev_action_map[res[:a]]] += 1
                     # println("after: i:$i, s:$(res[:s]), a:$(rev_action_map[res[:a]]), N:$(N_tables[i][res[:s],rev_action_map[res[:a]]])")
@@ -42,9 +43,10 @@ module PFAgent
                     if e % (floor(epochs/10)) == 0 || stop_early
                        println("e: $e, t: $t, agent $i, result: $res")
                     end
-                    # if found_target(r) && stop_early
-                    #     return "Done!"
-                    # end
+                    if found_target(r) && stop_early
+                        return  r_history  # Note after this all actions will be optimal, so we don't need to
+                                           # record them
+                    end
                end
                for i in 1:n_agents
                     if ! isempty(agents[i])
