@@ -6,14 +6,18 @@ using POMDPs
 using POMDPModels
 using StaticArrays
 using Distributions
+using POMDPPolicies
+using POMDPSimulators
 
 const Vec2 = SVector{2, Int64}
 
-    struct PParallelChainMDP <: MDP{Vec2, Int64}
+    mutable struct PParallelChainMDP <: MDP{Vec2, Int64}
         len::Int64
         num_chains::Int64
         disc::Float64
-        Rs::Array{Float64}
+        Rs_means::Array{Float64}
+        Rs_stds::Array{Float64}
+        rng::MersenneTwister
     end
     function POMDPs.generate_s(p::PParallelChainMDP, s::Vec2, a::Int64, rng::AbstractRNG)
         if s[2] != 1
@@ -24,13 +28,13 @@ const Vec2 = SVector{2, Int64}
         end
     end
 
-    function POMDPs.reward(p::PParallelChainMDP, s::Vec2, a::Int64)
-        println("s:$(s),len:$(p.len)")
-        if s[2] == p.len -1
-            return p.Rs[s[1]] # Should be random
-        end
-        return 0
-    end
+    # function POMDPs.reward(p::PParallelChainMDP, s::Vec2, a::Int64)
+    #     # println("s:$(s),len:$(p.len)")
+    #     if s[2] == p.len -1
+    #         return p.Rs[s[1]] # Should be random
+    #     end
+    #     return 0
+    # end
     function POMDPs.isterminal(p::PParallelChainMDP, s::Vec2)
         if s[2] == p.len
             return true
@@ -57,7 +61,9 @@ const Vec2 = SVector{2, Int64}
 
     function POMDPs.reward(p::PParallelChainMDP, s::Vec2, a::Int64, sp::Vec2)
         if s[2] == p.len -1
-            return p.Rs[s[1]] # Should be random
+            reward = (randn(p.rng, Float32, 1) .* p.Rs_stds[s[1]]  .+ p.Rs_means[s[1]])[1] # Should be random
+            # println("reward: $reward")
+            return reward
         end
         return 0
     end
@@ -74,8 +80,8 @@ const Vec2 = SVector{2, Int64}
         return d.p[sp]
     end
     function POMDPs.stateindex(p::PParallelChainMDP, s::Vec2)
-      println("s:$s")
-      println("li:$(LinearIndices((p.num_chains, p.len))[s...])")
+      # println("s:$s")
+      # println("li:$(LinearIndices((p.num_chains, p.len))[s...])")
       return LinearIndices((p.num_chains, p.len))[s...]
     end
 
@@ -96,9 +102,74 @@ const Vec2 = SVector{2, Int64}
     # states(::MDP)
     # actions(::MDP)
     function POMDPs.states(p::PParallelChainMDP)
-        println("states:$(vec( [Vec2(x,y) for x in 1:p.num_chains, y in 1:p.len]))")
+        # println("states:$(vec( [Vec2(x,y) for x in 1:p.num_chains, y in 1:p.len]))")
         vec( [Vec2(x,y) for x in 1:p.num_chains, y in 1:p.len])
     end
     function POMDPs.actions(p::PParallelChainMDP)
        return 1:p.num_chains
     end
+
+
+
+curry(f, x) = (xs...) -> f(x, xs...)
+function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors, priors,
+                     n_agents, num_states, num_chains,
+                     epochs, steps) #, rev_action_map)
+    r_history =[]
+    # N_lists =
+    for e in 1:epochs
+        agents = []
+        done = false
+        t = 0
+        start = 1
+        while ! done
+           done = true
+           for i in 1:n_agents
+                if i >= start
+                    start += 1
+                    done = false
+                    push!(agents, mdp_iter_builder(true_mdp, priors, i, num_states, num_chains, steps))
+                    break
+                end
+                if isempty(agents[i])
+                    println("agent $i is done")
+                    continue
+                end
+                res = popfirst!(agents[i])
+                r = res[:r]
+                t = res[:t]
+                st = res[:s]
+                push!(r_history, (e,i,t,st,r))
+                li = LinearIndices((num_chains, num_states))
+                # N_lists[i][s]] += 1
+                if e % (floor(epochs/1)) == 0
+                   println("e: $e, t: $t, agent $i, result: $res")
+                end
+                # if update prior
+                # priors = update_priors(priors, li, s, a, r, sp, t)
+           end
+           for i in 1:n_agents
+
+                if  length(agents) < i || ( ! isempty(agents[i]))
+                    done = false
+                end
+           end
+        end
+    end
+    return r_history
+end
+
+function setup_agents(states, num_states, num_agents, actions, num_actions, policy_function)
+    Q_tables = []
+    policies = []
+    println("setup agents")
+    empty_N = zeros( num_states+2, num_actions)
+    N_tables = Dict{Int32, typeof(empty_N)}()
+    Central_Q_table = Dict{Int32, Dict{Int32, Float32}}()
+
+    for i in 1:num_agents
+        N_tables[i] = deepcopy(empty_N)
+        push!(policies, curry(curry(curry(curry(policy_function, q_mat), N_tables),i), actions))
+    end
+    return (Q_tables, N_tables, policies)
+end
