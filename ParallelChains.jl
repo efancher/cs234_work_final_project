@@ -8,6 +8,7 @@ using StaticArrays
 using Distributions
 using POMDPPolicies
 using POMDPSimulators
+using Statistics
 
 const Vec2 = SVector{2, Int64}
 
@@ -15,9 +16,9 @@ const Vec2 = SVector{2, Int64}
         len::Int64
         num_chains::Int64
         disc::Float64
-        Rs_means::Array{Float64}
-        Rs_stds::Array{Float64}
-        rng::MersenneTwister
+        Rs::Array{Float64}
+        # Rs_stds::Array{Float64}
+        # rng::MersenneTwister
     end
     function POMDPs.generate_s(p::PParallelChainMDP, s::Vec2, a::Int64, rng::AbstractRNG)
         if s[2] != 1
@@ -61,7 +62,7 @@ const Vec2 = SVector{2, Int64}
 
     function POMDPs.reward(p::PParallelChainMDP, s::Vec2, a::Int64, sp::Vec2)
         if s[2] == p.len -1
-            reward = (randn(p.rng, Float32, 1) .* p.Rs_stds[s[1]]  .+ p.Rs_means[s[1]])[1] # Should be random
+            reward = p.Rs[s[1]] # Should be random
             # println("reward: $reward")
             return reward
         end
@@ -115,10 +116,13 @@ curry(f, x) = (xs...) -> f(x, xs...)
 function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors, priors,
                      n_agents, num_states, num_chains,
                      epochs, steps) #, rev_action_map)
+    rng = MersenneTwister(1234)
     r_history =[]
     # N_lists =
+    latest_priors = deepcopy(priors)
     for e in 1:epochs
         agents = []
+        agents_done = zeros(Bool, 1, num_agents)
         done = false
         t = 0
         start = 1
@@ -128,7 +132,7 @@ function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors
                 if i >= start
                     start += 1
                     done = false
-                    push!(agents, mdp_iter_builder(true_mdp, priors, i, num_states, num_chains, steps))
+                    push!(agents, mdp_iter_builder(true_mdp, latest_priors, i, num_states, num_chains, steps))
                     break
                 end
                 if isempty(agents[i])
@@ -139,18 +143,26 @@ function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors
                 r = res[:r]
                 t = res[:t]
                 st = res[:s]
+                # note sp is ignored
+                r = POMDPs.reward(true_mdp, st, 1, Vec2(1,1)) != 0 ? randn(rng, Float32,1)[1]  + POMDPs.reward(true_mdp, st, 1, Vec2(1,1)) : 0
+
                 push!(r_history, (e,i,t,st,r))
                 li = LinearIndices((num_chains, num_states))
                 # N_lists[i][s]] += 1
                 if e % (floor(epochs/1)) == 0
                    println("e: $e, t: $t, agent $i, result: $res")
                 end
-                # if update prior
+                if isempty(agents[i]) && ! agents_done[i]
+                    agents_done[i] = true
+                    println("Updating priors")
+                    latest_priors = update_priors(priors, r_history)
+                end
                 # priors = update_priors(priors, li, s, a, r, sp, t)
            end
            for i in 1:n_agents
 
                 if  length(agents) < i || ( ! isempty(agents[i]))
+
                     done = false
                 end
            end
