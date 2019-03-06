@@ -113,51 +113,72 @@ const Vec2 = SVector{2, Int64}
 
 
 curry(f, x) = (xs...) -> f(x, xs...)
-function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors, priors,
+function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors, priors, true_vals,
                      n_agents, num_states, num_chains,
-                     epochs, steps) #, rev_action_map)
-    rng = MersenneTwister(1234)
+                     epochs, steps, is_thompson_sampling, rng) #, rev_action_map)
     r_history =[]
     # N_lists =
     latest_priors = deepcopy(priors)
+    ap = Poisson(1)
     for e in 1:epochs
         agents = []
-        agents_done = zeros(Bool, 1, num_agents)
+        agents_done = zeros(Bool, 1, n_agents)
         done = false
         t = 0
-        start = 1
+        started = 0
         while ! done
            done = true
-           for i in 1:n_agents
-                if i >= start
-                    start += 1
-                    done = false
-                    push!(agents, mdp_iter_builder(true_mdp, latest_priors, i, num_states, num_chains, steps))
-                    break
-                end
+           max_finished = 1
+           # i = max_finished
+
+           # println("$(n_agents - i)")
+           # println("start_add:$start_add")
+           if started < n_agents
+               start_add = rand(rng, ap)
+               if start_add > 0
+                 for j in 1:start_add
+                   if length(agents) < n_agents
+                     started += 1
+                     push!(agents, mdp_iter_builder(rng, true_mdp, latest_priors, started, num_states, num_chains, steps, nothing))
+                   end
+                 end
+               end
+           end
+           for i in max_finished:started
+                # if i >= start
+                #     start += 1
+                #     done = false
+                #     break
+                # end
                 if isempty(agents[i])
-                    println("agent $i is done")
+                    # println("agent $i is done")
                     continue
                 end
                 res = popfirst!(agents[i])
                 r = res[:r]
                 t = res[:t]
                 st = res[:s]
+                sp = res[:sp]
                 # note sp is ignored
                 r = POMDPs.reward(true_mdp, st, 1, Vec2(1,1)) != 0 ? randn(rng, Float32,1)[1]  + POMDPs.reward(true_mdp, st, 1, Vec2(1,1)) : 0
 
                 push!(r_history, (e,i,t,st,r))
                 li = LinearIndices((num_chains, num_states))
                 # N_lists[i][s]] += 1
-                if e % (floor(epochs/1)) == 0
+                if i ==1 || i % floor(n_agents/10) == 0
                    println("e: $e, t: $t, agent $i, result: $res")
                 end
                 if isempty(agents[i]) && ! agents_done[i]
+                    # println("agent $i is done")
                     agents_done[i] = true
-                    println("Updating priors")
+                    # println("Updating priors")
                     latest_priors = update_priors(priors, r_history)
+                    max_finished = i
                 end
-                # priors = update_priors(priors, li, s, a, r, sp, t)
+                # for thompson sampling, we need to call the builder again, if the agent isn't done.
+                if is_thompson_sampling && ! agents_done[i]
+                  agents[i] = mdp_iter_builder(rng, true_mdp, latest_priors, i, num_states, num_chains, steps, sp)
+                end
            end
            for i in 1:n_agents
 
