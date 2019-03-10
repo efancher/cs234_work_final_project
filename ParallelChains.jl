@@ -172,7 +172,7 @@ function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors
                     # println("agent $i is done")
                     agents_done[i] = true
                     # println("Updating priors")
-                    latest_priors = update_priors(priors, r_history)
+                    latest_priors = update_priors(priors, r_history, true_vals)
                     max_finished = i
                 end
                 # for thompson sampling, we need to call the builder again, if the agent isn't done.

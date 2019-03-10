@@ -2,8 +2,6 @@
 module PFChainMDP
 using Random # for AbstractRNG
 using POMDPModelTools
-using POMDPPolicies
-using POMDPSimulators
 using POMDPs
     export PChainMDP
     struct PChainMDP <: MDP{Int, Symbol}

@@ -44,6 +44,7 @@ module PFAgent
                        println("e: $e, t: $t, agent $i, result: $res")
                     end
                     if found_target(r) && stop_early
+                        println("Stopping early!")
                         return  r_history  # Note after this all actions will be optimal, so we don't need to
                                            # record them
                     end
