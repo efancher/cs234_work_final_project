@@ -41,6 +41,9 @@ const Vec2 = SVector{2, Int64}
         # if s[2] == p.len
         #     return true
         # end
+        if length(p.trans[s]) == 0
+            return true
+        end
         return false
     end
 
@@ -69,7 +72,7 @@ const Vec2 = SVector{2, Int64}
     # end
     function POMDPs.reward(p::PMaxRewardPathMDP, s::Vec2, a::Int64, sp::Vec2)
         # println("Reward:for s[2]:$(s[2]),a:$a, is $(p.Rs[s[2], a])")
-        reward = p.Rs[s[2], a] # Should be random
+        reward = p.Rs[s[2], a]
         # println("reward: $reward")
         return reward
 
@@ -127,6 +130,8 @@ const Vec2 = SVector{2, Int64}
         latest_priors = deepcopy(priors)
         ap = Poisson(1)
         for e in 1:epochs
+        overall_step = 0
+
             agents = []
             agent_steps = []
             agents_done = zeros(Bool, 1, n_agents)
@@ -134,6 +139,7 @@ const Vec2 = SVector{2, Int64}
             t = 0
             started = 0
             while ! done
+               overall_step += 1
                done = true
                max_finished = 1
                # i = max_finished
@@ -171,19 +177,20 @@ const Vec2 = SVector{2, Int64}
                     a = res[:a]
                     # note sp is ignored
                     # e − 0.005, 0.01
-                    r = POMDPs.reward(true_mdp, st, a, sp) != 0 ? exp(randn(rng, Float32,1)[1]*true_mdp.sigma  + 
-                                                (log(POMDPs.reward(true_mdp, st, a, sp)) - (true_mdp.sigma)^2 )): 0
+                    r = exp(randn(rng, Float32,1)[1]*true_mdp.sigma  +
+                                                (log(POMDPs.reward(true_mdp, st, a, sp)) - ((true_mdp.sigma)^2)/2 ))
 
-                    push!(r_history, (e,i,t,st[2],sp[2],a, r))
+                    push!(r_history, (e,i,t,st[2],sp[2],a, r, overall_step))
                     # N_lists[i][s]] += 1
-                    #if i ==1 || i % floor(n_agents/10) == 0
+                    if i ==1 || i % floor(n_agents/10) == 0
                        println("e: $e, t: $t, agent $i, actual reward: $r, result: $res")
-                    #end
+                    end
+
+                    latest_priors = update_priors(latest_priors, r_history, true_vals, true_mdp, num_states)
                     if isempty(agents[i]) && ! agents_done[i]
                         # println("agent $i is done")
                         agents_done[i] = true
                         # println("Updating priors")
-                        latest_priors = update_priors(priors, r_history, true_vals, true_mdp)
                         max_finished = i
                     end
                     # for thompson sampling, we need to call the builder again, if the agent isn't done.
