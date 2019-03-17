@@ -1,0 +1,6 @@
+Regret,agent,algorithm
+225.0,1,Thompson Sampling
+225.0,10,Thompson Sampling
+225.0,100,Thompson Sampling
+225.0,1000,Thompson Sampling
+223.00669301503447,10000,Thompson Sampling

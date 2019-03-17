@@ -1,0 +1,33 @@
+\begin{thebibliography}{3}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Auer et~al.(2009)Auer, Jaksch, and Ortner]{UCB2010}
+Auer, P., Jaksch, T., and Ortner, R.
+\newblock Near-optimal regret bounds for reinforcement learning.
+\newblock In Koller, D., Schuurmans, D., Bengio, Y., and Bottou, L. (eds.),
+  \emph{Advances in Neural Information Processing Systems 21}, pp.\  89--96.
+  Curran Associates, Inc., 2009.
+\newblock URL
+  \url{http://papers.nips.cc/paper/3401-near-optimal-regret-bounds-for-reinforcement-learning.pdf}.
+
+\bibitem[Dimakopoulou \& Roy(2018)Dimakopoulou and Roy]{SeedSampling}
+Dimakopoulou, M. and Roy, B.~V.
+\newblock Coordinated exploration in concurrent reinforcement learning.
+\newblock \emph{CoRR}, abs/1802.01282, 2018.
+\newblock URL \url{http://arxiv.org/abs/1802.01282}.
+
+\bibitem[Strens(2000)]{Strens2000}
+Strens, M. J.~A.
+\newblock A bayesian framework for reinforcement learning.
+\newblock In \emph{Proceedings of the Seventeenth International Conference on
+  Machine Learning}, ICML '00, pp.\  943--950, San Francisco, CA, USA, 2000.
+  Morgan Kaufmann Publishers Inc.
+\newblock ISBN 1-55860-707-2.
+\newblock URL
+  \url{http://dl.acm.org.stanford.idm.oclc.org/citation.cfm?id=645529.658114}.
+
+\end{thebibliography}

@@ -30,7 +30,7 @@
 \begin{document}
 
 \twocolumn[
-\icmltitle{Project Update for Replication Review for Coordinated Exploration in
+\icmltitle{Replication Review for Coordinated Exploration in
 Concurrent Reinforcement Learning}
 
 
@@ -94,6 +94,8 @@ Here is an image from the paper showing a set of parallel chains:
 
 3) Maximum reward path. This is constructed as a graph with nodes connected with probability p and rewards that are normally distributed.
 
+\section{Background/Related Work}
+
 \section{Approach}
 Although this is a multiple agent problem, the Seed Sampling paper treated actions as occurring within discrete time steps, so it wasn't necessary to use a distributed (including multi-threaded) approach. So, I decided to take advantage of the fairly nice POMDP.jl framework in Julia. 
 
@@ -134,7 +136,7 @@ This one will likely be more complicated since there are a much larger possible 
  \end{itemize}
 
     
-\section{Initial Results}
+\section{Experiment results}
 I have done runs with a short 20 node bipolar chain for all three exploration types for 1, 2, 5, and 10 agents.
 \begin{tabular}{|c|c|c|}
 \hline 
@@ -165,12 +167,56 @@ UCB&5&28.9 \\
 UCB&10&25.2 \\ 
 \hline 
 \end{tabular} 
-
+\begin{figure}[htbp!]
+  \centering
 \includegraphics[scale=.6]{results_pre.jpeg}
 
+  \caption{Regret per Agent Count by Algorithm Type.}
+ \label{fig:bipolarregretperagentbyalgo}
+\end{figure}
 There are some small discrepancies. Thompson sampling shows a drop for 5 and 10 agents, but I think this is likely due to the small chain size, which allows an agent to accidentally hit the end goal, with some higher than expected frequency. In addition, in the paper, UCB was a little closer to the performance of Seed Sampling. This could be that the paper was a little vague about the parallel UCB algorithm used. I implemented a version of UCB1 that used Q and N tables that were common across the agents. Despite this, the improvement when using Seed Sampling is still quite remarkable, and generally consistent with the improvement shown in the paper (if not better, really.)
 
-\subsection{Citations and References}
+\subsection{Parallel Chains}
+
+\begin{table}[]
+\begin{tabular}{|c|c|c|c|} 
+\hline 
+Seed Sampling     & 1       & 11.29179   \\ 
+\hline 
+Seed Sampling     & 10    & 13.4939681 \\ 
+\hline 
+Seed Sampling     & 100     & 5.3208811  \\ 
+\hline 
+Seed Sampling     & 1000   & 1.0470233  \\ 
+\hline 
+Seed Sampling     & 10000  & 0.4673821  \\ 
+\hline 
+Thompson Sampling & 1          & 14.2777303 \\ 
+\hline 
+Thompson Sampling & 10       & 12.70898   \\ 
+\hline 
+Thompson Sampling & 100    & 5.6677106  \\ 
+\hline  
+Thompson Sampling & 1000    & 1.0721236  \\ 
+\hline 
+Thompson Sampling & 10000  & 0.473994   \\ 
+\hline 
+UCB               & 1         & 18.813709  \\ 
+\hline 
+UCB               & 10       & 17.1507441 \\ 
+\hline 
+UCB               & 100      & 10.0549201 \\ 
+\hline 
+UCB               & 1000    & 1.4543679  \\ 
+\hline 
+UCB               & 10000  & 0.49      \\ 
+\hline 
+\end{tabular}
+\end{table}
+\includegraphics[scale=.6]{../pc_results_regret_by_algo.jpg}
+\section{Conclusion}
+
+\section{References}
 
 \bibliography{project_update}
 \bibliographystyle{icml2018}

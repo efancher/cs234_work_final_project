@@ -1,0 +1,6 @@
+Regret,agent,algorithm
+122.0,1,UCB
+120.4,10,UCB
+50.22,100,UCB
+5.028,1000,UCB
+0.5024,10000,UCB

@@ -6,6 +6,7 @@ module PFAgent
     function run_chain!(;policies, found_target, mdps, update_Q, n_agents, n_states,
                         Q_tables, N_tables, epochs, steps, rev_action_map, stop_early)
         r_history =[]
+        println("$(length(mdps)),$(length(policies))")
         for e in 1:epochs
             agents = []
             for i in 1:n_agents
@@ -35,9 +36,9 @@ module PFAgent
                     t = res[:t]
                     st = res[:s]
                     push!(r_history, (e,i,t,st,r))
-                    # println("before: i:$i, s:$(res[:s]), a:$(rev_action_map[res[:a]]), N:$(N_tables[i][res[:s],rev_action_map[res[:a]]])")
+
                     N_tables[i][res[:s],rev_action_map[res[:a]]] += 1
-                    # println("after: i:$i, s:$(res[:s]), a:$(rev_action_map[res[:a]]), N:$(N_tables[i][res[:s],rev_action_map[res[:a]]])")
+                    
 
                     update_Q(Q_tables[i],res..., rev_action_map)
                     if e % (floor(epochs/10)) == 0 || stop_early

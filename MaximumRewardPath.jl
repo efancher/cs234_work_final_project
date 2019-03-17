@@ -1,5 +1,4 @@
 
-#module PFMaxRewardPathMDP
 using Random # for AbstractRNG
 using POMDPModelTools
 using POMDPs
@@ -18,29 +17,11 @@ const Vec2 = SVector{2, Int64}
         Rs::Array{Float64,2}
         trans::Dict{Int64, Array{Int64}}
         sigma::Float64
-        # Rs_stds::Array{Float64}
-        # rng::MersenneTwister
-    end
-    # function POMDPs.generate_s(p::PMaxRewardPathMDP, s::Vec2, a::Int64, rng::AbstractRNG)
-    #     if s[2] != 1
-    #         return Vec2(s[1], s[2] + 1)
-    #     end
-    #     if s[2] == 1
-    #         return Vec2(a, 2)
-    #     end
-    # end
 
-    # function POMDPs.reward(p::PMaxRewardPathMDP, s::Vec2, a::Int64)
-    #     # println("s:$(s),len:$(p.len)")
-    #     if s[2] == p.len -1
-    #         return p.Rs[s[1]] # Should be random
-    #     end
-    #     return 0
-    # end
+    end
+
     function POMDPs.isterminal(p::PMaxRewardPathMDP, s::Int64)
-        # if s[2] == p.len
-        #     return true
-        # end
+
         if length(p.trans[s]) == 0
             return true
         end
@@ -66,56 +47,45 @@ const Vec2 = SVector{2, Int64}
         return POMDPs.reward(p, Vec2(1,s), a, Vec2(1,1))
 
     end
-    # function POMDPs.reward(p::PMaxRewardPathMDP, s::Vec2, a::Int64)
-    #     return POMDPs.reward(p, s, a, Vec2(1,1))
-    #
-    # end
+
     function POMDPs.reward(p::PMaxRewardPathMDP, s::Vec2, a::Int64, sp::Vec2)
-        # println("Reward:for s[2]:$(s[2]),a:$a, is $(p.Rs[s[2], a])")
+
         reward = p.Rs[s[2], a]
-        # println("reward: $reward")
+
         return reward
 
     end
 
     function POMDPs.transition(p::PMaxRewardPathMDP, s::Vec2, a::Int64)
-        #println("transition: $s, $a")
+
           return Deterministic(Vec2(1,a))
     end
 
     function POMDPs.pdf(d::SArray, sp::SArray)
-        #println("pdf")
+
         return d.p[sp]
     end
     function POMDPs.stateindex(p::PMaxRewardPathMDP, s::Vec2)
-      # println("s:$s")
-      # println("li:$(LinearIndices((p.num_chains, p.len))[s...])")
+
       return s[2]
     end
 
     function POMDPs.actionindex(p::PMaxRewardPathMDP, a::Int64)
-      #println("actionindex")
+
       return a
     end
-    # actionindex(::MDP, ::Action)
-    # actions(::MDP, ::State)
+
     function POMDPs.actions(p::PMaxRewardPathMDP, s::Vec2)
-       #println("actions: $s")
-       #println("in state $s, can take action $(p.trans[s[2]])")
+
        return p.trans[s[2]]
     end
-    # support(::StateDistribution)
-    # pdf(::StateDistribution, ::State)
 
-    # states(::MDP)
-    # actions(::MDP)
     function POMDPs.states(p::PMaxRewardPathMDP)
-        #println("states")
-        # println("states:$(vec( [Vec2(x,y) for x in 1:p.num_chains, y in 1:p.len]))")
+
         vec( [Vec2(1,y) for  y in 1:p.len])
     end
     function POMDPs.actions(p::PMaxRewardPathMDP)
-       #println("actions")
+
        return 1:p.len
     end
 
@@ -124,9 +94,9 @@ const Vec2 = SVector{2, Int64}
     curry(f, x) = (xs...) -> f(x, xs...)
     function run_chain!(;mdp_iter_builder, true_mdp, do_update_priors, update_priors, priors, true_vals,
                          n_agents, num_states, num_chains,
-                         epochs, steps, is_thompson_sampling, rng) #, rev_action_map)
+                         epochs, steps, is_thompson_sampling, rng)
         r_history =[]
-        # N_lists =
+
         latest_priors = deepcopy(priors)
         ap = Poisson(1)
         for e in 1:epochs
@@ -142,10 +112,7 @@ const Vec2 = SVector{2, Int64}
                overall_step += 1
                done = true
                max_finished = 1
-               # i = max_finished
 
-               # println("$(n_agents - i)")
-               # println("start_add:$start_add")
                if started < n_agents
                    start_add = rand(rng, ap)
                    if start_add > 0
@@ -159,13 +126,9 @@ const Vec2 = SVector{2, Int64}
                    end
                end
                for i in max_finished:started
-                    # if i >= start
-                    #     start += 1
-                    #     done = false
-                    #     break
-                    # end
+
                     if isempty(agents[i])
-                        # println("agent $i is done")
+
                         continue
                     end
                     res = popfirst!(agents[i])
@@ -181,18 +144,19 @@ const Vec2 = SVector{2, Int64}
                                                 (log(POMDPs.reward(true_mdp, st, a, sp)) - ((true_mdp.sigma)^2)/2 ))
 
                     push!(r_history, (e,i,t,st[2],sp[2],a, r, overall_step))
-                    # N_lists[i][s]] += 1
+
                     if i ==1 || i % floor(n_agents/10) == 0
                        println("e: $e, t: $t, agent $i, actual reward: $r, result: $res")
                     end
 
                     latest_priors = update_priors(latest_priors, r_history, true_vals, true_mdp, num_states)
                     if isempty(agents[i]) && ! agents_done[i]
-                        # println("agent $i is done")
+
                         agents_done[i] = true
-                        # println("Updating priors")
+
                         max_finished = i
                     end
+                    
                     # for thompson sampling, we need to call the builder again, if the agent isn't done.
                     if is_thompson_sampling && ! agents_done[i]
                       agents[i] = mdp_iter_builder(rng, true_mdp, latest_priors, i, num_states, num_chains, agent_steps[i], sp)
