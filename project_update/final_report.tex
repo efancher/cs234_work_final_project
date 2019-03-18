@@ -19,13 +19,15 @@
 
 % Use the following line for the initial blind version submitted for review:
 \usepackage[accepted]{icml2018}
-
+\usepackage{amsmath}
 % If accepted, instead use the following line for the camera-ready submission:
 %\usepackage[accepted]{icml2018}
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{Submission and Formatting Instructions for ICML 2018}
+\icmltitlerunning{Replication Review for Coordinated Exploration in
+Concurrent Reinforcement Learning}
+\DeclareMathOperator*{\argmax}{argmax}
 
 \begin{document}
 
@@ -75,13 +77,31 @@ There are multiple approaches to exploration in single agent settings. These app
 
 In this project, I attempt to replicate the findings in \cite{SeedSampling}. In this paper 3 approaches are compared: UCB based multiple agent approaches, Thompson Sampling and seed sampling. Seed sampling is based on the single agent PSRL approach.  In the UCB approach, as presented in the paper, the agents do not coordinate directly on exploration. Instead, they maintain a shared prior  and at the the beginning of an episode will generate an MDP model using an upper control bound approach.  Two agents, for which the shared prior is currently the same, will construct the same MDP and thus will have the same policy for the episode.
 
+The paper reviewed presents three properties the authors believe are necessary for good coordinated multi-agent approaches (quoted from \cite{SeedSampling}
+\begin{itemize}
+\item Adaptivity
+
+Adapt as data becomes available to make effective use of new
+information.
+
+\item Commitment
+
+Maintain the intent to carry out probing action sequences
+that span multiple periods.
+
+\item Diversity
+
+Divide-and-conquer learning opportunities among agents.
+
+\end{itemize}
+
 In the Thompson sampling approach, at each time step, a potential MDP is constructed on the transitions and/or Rewards, based on posteriors obtained for the priors updated by the transitions/rewards seen up to this point. Each agent then samples independently from the distribution of possible MDPs based on the posteriors to take the next step. In seed sampling, an MDP is constructed at the beginning of each episode, similarly to Thompson sampling, and this is used to generate a policy for the episode. So the main difference between Thompson sampling and seed sampling is that seed sampling samples per episode, and Thompson sampling samples per time step.
 
 The paper presented two types of seed sampling: standard Gaussian seed sampling and Martingalean Gaussian seed sampling. The results for both as presented int the paper were pretty much identical, so I only tried to reproduce the results for the standard Gaussian seed sampling. The difference between seed sampling and Thompson sampling is that seed sampling adds an additional small amount of randomness at the beginning of an episode and then generates a policy for the entire episode, similar to the UCB approach the paper describes.
 
 An important consideration is that, in terms of the paper's construction of the problem, an MDP (could be an approximation) must be solved for all three methods. For UCB and seed sampling, it's done once per episode, for Thompson sampling it's every time step. Every agent creates it's own policy, although that policy could be equal to another agents policy.
 
-Seed sampling gets it's name from the addition of a small seed (in the paper the seed is distributed as $z_k~ Bernoulli(p)$ for the bipolar chain example and $z_k ~ N(0,1)$ for the other problems.  A seed is only sampled once per episode. How a seed is incorporated in the MDP sampling is problem specific.
+Seed sampling gets it's name from the addition of a small seed (in the paper the seed is distributed as $z_k$  \textasciitilde $Bernoulli(p)$ for the bipolar chain example and $z_k$ \textasciitilde $N(0,1)$ for the other problems.  A seed is only sampled once per episode. How a seed is incorporated in the MDP sampling is problem specific.
 
 Here is a table which shows how to view the approach of each in terms of how often the MDP is solved and how it achieves (or doesn't achieve) diversity.
 
@@ -89,18 +109,20 @@ Here is a table which shows how to view the approach of each in terms of how oft
 \centering
 \begin{tabular}{|lll|} 
 \hline 
-Algorithm Family   & Diversity?       & MDP Solved  \\ 
+Algorithm   & Diversity & Adaptibility \\ 
 \hline 
 UCB     & No       & Once Per Episode \\ 
-Thompson Sampling     & Yes      & Every Timestep \\ 
-Seed Sampling     & Yes       & Once Per Episode \\ 
+Thompson     & Yes      & Every Timestep \\ 
+Seed     & Yes       & Once Per Episode \\ 
    \hline
 \end{tabular}
 \end{table}
 
 Each set of three approaches is tested on three simple problems.
 
-1) A bipolar chain, illustrated in Figure \ref{bipolarchain}, is constructed as $-10 \longleftrightarrow -1 \longleftrightarrow ... \longleftrightarrow -1 \longleftrightarrow 10$. The chain can be reversed. So there are 3 rewards: -10, 10, -1 and 2 actions: left, right. All transitions are deterministic. The -10 and 10 states are also stopping states. Rewards are not noisy in this scenario, but which end has the reward of -10 and which end has the reward of 10 is random (Bernoulli, as above.) If a single agent hits either the -10 reward or the 10 reward, it is assumed that is known instantly by all agents, which will use the policy for the true MDP after that. 
+1) A bipolar chain
+
+A bipolar chain is illustrated in Figure \ref{fig:bipolarchain}, is constructed as $-10 \longleftrightarrow -1 \longleftrightarrow ... \longleftrightarrow -1 \longleftrightarrow 10$. The chain can be reversed. So there are 3 rewards: -10, 10, -1 and 2 actions: left, right. All transitions are deterministic. The -10 and 10 states are also stopping states. Rewards are not noisy in this scenario, but which end has the reward of -10 and which end has the reward of 10 is random (Bernoulli, as above.) If a single agent hits either the -10 reward or the 10 reward, it is assumed that is known instantly by all agents, which will use the policy for the true MDP after that. 
 
 Here is an image from the paper showing a bipolar chain:
 
@@ -111,7 +133,9 @@ Here is an image from the paper showing a bipolar chain:
   \caption{Graph of Bipolar Chain Example.}
  \label{fig:bipolarchain}
 \end{figure}
-2) Parallel chains, illustrated in Figure \ref{fig:parallelchains}, are constructed as a a set of singly linked lists with a common node at one end. All nodes have 0 rewards except the the end nodes. Those have  rewards that are distributed as $N(0,100+c)$ where c is a unique integer in 1 .. \# of nodes. So, you could sort them to have rewards of $N(0,101)$, $N(0,102)$ ... I didn't sort them to have more generalizable results. The actual reward obtained is a noisy (distributed normally) sample from the reward for the node.  The same chains are used for an entire run for all algorithms, but a new set of chains and rewards are sampled for each run. All transitions are deterministic.
+2) Parallel chains
+
+Parallel chains are illustrated in Figure \ref{fig:parallelchains}, are constructed as a a set of singly linked lists with a common node at one end. All nodes have 0 rewards except the the end nodes. Those have  rewards that are distributed as $N(0,100+c)$ where c is a unique integer in 1 .. \# of nodes. So, you could sort them to have rewards of $N(0,101)$, $N(0,102)$ ... I didn't sort them to have more generalizable results. The actual reward obtained is a noisy (distributed normally) sample from the reward for the node.  The same chains are used for an entire run for all algorithms, but a new set of chains and rewards are sampled for each run. All transitions are deterministic.
 
 Here is an image from the paper showing a set of parallel chains:
 
@@ -122,7 +146,9 @@ Here is an image from the paper showing a set of parallel chains:
   \caption{Graph of Parallel Chains Example.}
  \label{fig:parallelchains}
 \end{figure}
-3) Maximum reward path. This is constructed as a graph with nodes connected with probability p and rewards that are normally distributed. For the purposes of the example in the paper, rewards are distributed as $ln r_e | \theta_e ~ N(ln \theta_e - \sigma^2/2,\sigma^2)$. The graph sample structure itself is an Erd\~os-R\'enyi graph with N =100 and probability of an edge $p=2 \frac{ln N}{N}$ Rewards are noisy, similarly to parallel chains, but with a slightly different normal distribution. Transitions between nodes, once a graph has been sampled, are deterministic. The agent doesn't know the structure of the graph a priori. The same graph is used for an entire run, but new graphs are sampled between runs.
+3) Maximum reward path. 
+
+This is constructed as a graph with nodes connected with probability p and rewards that are normally distributed. For the purposes of the example in the paper, rewards are distributed as $ln{(r_e)} | \theta_e$  \textasciitilde $N(ln{(\theta_e)} - \sigma^2/2,\sigma^2)$. The graph sample structure itself is an Erd\~os-R\'enyi graph with N =100 and probability of an edge $p=2 \frac{ln N}{N}$ Rewards are noisy, similarly to parallel chains, but with a slightly different normal distribution. Transitions between nodes, once a graph has been sampled, are deterministic., but the agent doesn't know the structure of the graph a priori. So, while transitions are deterministic, the transition matrix is not known and so, it must be discovered by the agents. The same graph is used for an entire run, but new graphs are sampled between runs.
 
 All episodes are finite horizon.
 
@@ -144,14 +170,20 @@ Steps:
 
 For the bipolar chain, I used the POMDPs.jl framework just for simulation, but I used Q-learning for solving the MDPs, that i wrote myself, but for the parallel chains and maximum reward path, I implemented a full parameterized MDP model using the POMDPs.jl interfaces for each and took advantage of the sparse value iteration solver provided. The true MDP model is used for the simulation portion and also to provide rewards mapping. 
 
-\item At the appropriate time, generate an MDP and solve it to get a policy for an episode. 
+\item Generate and solve an MDP
+
+At the appropriate time, generate an MDP and solve it to get a policy for an episode. 
 
 POMDPs.jl value iteration solvers don't handle stochastic rewards well (as expected), so I wrapped the true MDP function to produce the noisy response for the problem statements. I used a single MDP for the bipolar chain case, which was unknown by the agents. For parallel chains and maximum reward path, the true MDP was generated. In the case of parallel chains, random rewards were generated. In the case of maximum reward path, both the structure of the graph and the reward means were generated. This did mean that, especially in the case of a single agent, results could be very stochastic.
   
-\item Use the POMDPs.jl methods to run a simulation on an instance of the true MDP generated for the problem, providing a function policy that matches the exploration method. For the bipolar and parallel chains, this stops as soon as it hits a goal state. For the maximum reward path a complete exploration (up to the horizon) was necessary.
+\item Run simulation
+
+Use the POMDPs.jl methods to run a simulation on an instance of the true MDP generated for the problem, providing a function policy that matches the exploration method. For the bipolar and parallel chains, this stops as soon as it hits a goal state. For the maximum reward path a complete exploration (up to the horizon) was necessary.
 
 Each successive time step will see a new agent started, so if there are k agents, there would be one agent started at each time step $t_1$, $t_2$, ..., $t_k$. Each agent can take X \textasciitilde Poisson(1)  actions at each time step. 
-\item Repeat for multiple runs, stepping through different \#'s of agents. Calculate the average regret.
+\item Repeat
+
+Repeat for multiple runs, stepping through different \#'s of agents. Calculate the average regret.
 
   
  \end{itemize}
@@ -169,11 +201,30 @@ Each successive time step will see a new agent started, so if there are k agents
  where $\mu_s$ is the sample mean, $\mu_p$ is the prior mean, $\mu$ is the true mean, $\sigma_s$ is the sample standard deviation, $\sigma_p$ is the prior standard deviation, and $\sigma$ is the true standard deviation $\sigma$ and $\mu$ are assumed known, by the problem definition.
   
   \item Maximum Reward Path
+  
   \cite{SeedSampling} gives the prior update directly for this problem. They used a single sample update at each time step:
   $$\mu_e = \frac{\sigma^2 \mu_e + \sigma_e^2(\ln{r_e} + \frac{\sigma^2}{2}) }{\sigma_e^2+\sigma^2}$$
   $$\sigma_e^2 = \frac{\sigma_e^2 \sigma^2}{\sigma_e^2 + \sigma^2}$$
   \end{itemize}
-    
+\subsection{Regret Calculation}
+Since there were some differences between what I obtained for regret, and what the original paper obtained for regret, I thought it would be good to be clear about how I calculated regret for each problem.
+\begin{itemize}
+\item Bipolar chain
+
+This problem was a little more complicated than the others, just because of how it was formulated. Since the location of the reward was considered completely known as soon as an end was reached, it was more simple to just stop the entire simulation at that point and fill in how the agents would act after that directly in the results data frame. Then the regret for an agent i would be:
+$$\sum(reward_i) - N/2 $$
+
+\item Parallel Chains
+
+This was a little simpler. I simply took the max reward from the true MDP.
+So, the regret for each agent would be (assuming c is the id of the chain with the maximum reward):
+$$\argmax_c(reward) - reward_{i}$$
+
+\item Maximum Reward Path
+
+For this, I did something similar as for parallel chains, but for all nodes(states):
+$$\sum_s \argmax_a(reward(s, a^*)) - reward(s, a) $$
+\end{itemize}
 \section{Experiment results}
 \subsection{Bipolar Chain}
 For the bipolar chain, I did runs from for $10^k$ agents for $k=1..4$. I used N=100 for the number of nodes with the horizon $H=3 \cdot \frac{N}{2}$
@@ -296,11 +347,17 @@ I was able to replicate the findings in the paper. The results aren't exactly th
 
 As mentioned above, the ideas here seem to be similar to adding noise to training images to improve generalization. It makes me think that it's likely this idea could be taken out of the Bayesian context and applied to algorithms like UCB1 or MSIE-EB, especially if the PAC guarantees of MSIE-EB could be retained. It seems likely that such a method would use something similar to how you would implement the ensembles mentioned in the \cite{SCALSS} paper.
 
+Overall, seed sampling seems like it would be a very useful way to enhance diversity in exploration while avoiding some of the degenerative behavior of Thompson sampling in problems that have sparse rewards.
 \section{References}
 
 \bibliography{project_update}
 \bibliographystyle{icml2018}
 
+\section{Source Code}
+The source code I used is at \href{https://github.com/efancher/cs234_work_final_project}{Source Code}: \verb|https://github.com/efancher/cs234_work_final_project|. The repository is public. I included a (very) short readme: Readme.txt that explains the different files.
+
+\section{Collaborators}
+This was a solo project. So, just Edward Fancher - efancher.
 
 
 \end{document}
