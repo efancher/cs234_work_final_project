@@ -101,7 +101,7 @@ The paper presented two types of seed sampling: standard Gaussian seed sampling 
 
 An important consideration is that, in terms of the paper's construction of the problem, an MDP (could be an approximation) must be solved for all three methods. For UCB and seed sampling, it's done once per episode, for Thompson sampling it's every time step. Every agent creates it's own policy, although that policy could be equal to another agents policy.
 
-Seed sampling gets it's name from the addition of a small seed (in the paper the seed is distributed as $z_k$  \textasciitilde $Bernoulli(p)$ for the bipolar chain example and $z_k$ \textasciitilde $N(0,1)$ for the other problems.  A seed is only sampled once per episode. How a seed is incorporated in the MDP sampling is problem specific.
+Seed sampling gets it's name from the addition of a small seed (in the paper the seed is distributed as $z_k \sim Bernoulli(p)$ for the bipolar chain example and $z_k \sim N(0,1)$ for the other problems.  A seed is only sampled once per episode. How a seed is incorporated in the MDP sampling is problem specific.
 
 Here is a table which shows how to view the approach of each in terms of how often the MDP is solved and how it achieves (or doesn't achieve) diversity.
 
@@ -148,7 +148,7 @@ Here is an image from the paper showing a set of parallel chains:
 \end{figure}
 3) Maximum reward path. 
 
-This is constructed as a graph with nodes connected with probability p and rewards that are normally distributed. For the purposes of the example in the paper, rewards are distributed as $ln{(r_e)} | \theta_e$  \textasciitilde $N(ln{(\theta_e)} - \sigma^2/2,\sigma^2)$. The graph sample structure itself is an Erd\~os-R\'enyi graph with N =100 and probability of an edge $p=2 \frac{ln N}{N}$ Rewards are noisy, similarly to parallel chains, but with a slightly different normal distribution. Transitions between nodes, once a graph has been sampled, are deterministic., but the agent doesn't know the structure of the graph a priori. So, while transitions are deterministic, the transition matrix is not known and so, it must be discovered by the agents. The same graph is used for an entire run, but new graphs are sampled between runs.
+This is constructed as a graph with nodes connected with probability p and rewards that are normally distributed. For the purposes of the example in the paper, rewards are distributed as $ln{(r_e)} | \theta_e \sim N(ln{(\theta_e)} - \sigma^2/2,\sigma^2)$. The graph sample structure itself is an Erd\~os-R\'enyi graph with N =100 and probability of an edge $p=2 \frac{ln N}{N}$ Rewards are noisy, similarly to parallel chains, but with a slightly different normal distribution. Transitions between nodes, once a graph has been sampled, are deterministic., but the agent doesn't know the structure of the graph a priori. So, while transitions are deterministic, the transition matrix is not known and so, it must be discovered by the agents. The same graph is used for an entire run, but new graphs are sampled between runs.
 
 All episodes are finite horizon.
 
@@ -180,7 +180,7 @@ POMDPs.jl value iteration solvers don't handle stochastic rewards well (as expec
 
 Use the POMDPs.jl methods to run a simulation on an instance of the true MDP generated for the problem, providing a function policy that matches the exploration method. For the bipolar and parallel chains, this stops as soon as it hits a goal state. For the maximum reward path a complete exploration (up to the horizon) was necessary.
 
-Each successive time step will see a new agent started, so if there are k agents, there would be one agent started at each time step $t_1$, $t_2$, ..., $t_k$. Each agent can take X \textasciitilde Poisson(1)  actions at each time step. 
+Each successive time step will see a new agent started, so if there are k agents, there would be one agent started at each time step $t_1$, $t_2$, ..., $t_k$. Each agent can take $X \sim Poisson(1)$  actions at each time step. 
 \item Repeat
 
 Repeat for multiple runs, stepping through different \#'s of agents. Calculate the average regret.
@@ -198,7 +198,7 @@ Repeat for multiple runs, stepping through different \#'s of agents. Calculate t
  The prior update strategy wasn't mentioned for this problem in the paper, so  I used a standard sample gaussian prior update for this problem.
  $$\mu_{posterior} = \frac{\sigma_p^2}{(\frac{\sigma^2}{n} + \sigma_p^2)} \mu_s + \frac{\sigma_s^2}{(\frac{\sigma^2}{n} + \sigma_p^2)} \mu_p$$
  $$\sigma_{posterior} = ( \frac{1}{\sigma_p^2} + \frac{n}{\sigma^2})^{-1}$$
- where $\mu_s$ is the sample mean, $\mu_p$ is the prior mean, $\mu$ is the true mean, $\sigma_s$ is the sample standard deviation, $\sigma_p$ is the prior standard deviation, and $\sigma$ is the true standard deviation $\sigma$ and $\mu$ are assumed known, by the problem definition.
+ where $\mu_s$ is the sample mean, $\mu_p$ is the prior mean, $\mu$ is the true mean, $\sigma_s$ is the sample standard deviation, $\sigma_p$ is the prior standard deviation, and $\sigma$ is the true standard deviation $\sigma$ and $\mu$ are assumed known, by the problem definition. At each step, the posterior is the original prior modified by the data up to that point through the update formulas.
   
   \item Maximum Reward Path
   
@@ -213,6 +213,7 @@ Since there were some differences between what I obtained for regret, and what t
 
 This problem was a little more complicated than the others, just because of how it was formulated. Since the location of the reward was considered completely known as soon as an end was reached, it was more simple to just stop the entire simulation at that point and fill in how the agents would act after that directly in the results data frame. Then the regret for an agent i would be:
 $$\sum(reward_i) - N/2 $$
+where $N/2$ would be the optimal reward starting from the middle of the chain and heading directly for the end point with the true 10 reward.
 
 \item Parallel Chains
 
